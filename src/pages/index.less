@@ -1,0 +1,51 @@
+@import '~antd/dist/antd.css';
+@import '~antd/lib/style/themes/default.less';
+@import '~antd/dist/antd.less'; // 引入官方提供的 less 样式入口文件
+@import "../index.less";
+#Main{
+  width:100vw;
+  height: 100vh;
+  overflow: hidden;
+  .pageHeader{
+    background: @primary-dark;
+    *{
+      color: white !important;
+    }
+  }
+  .userInfo{
+    display: flex;
+    align-items: center;
+    >div{
+      margin-right: 20px;
+    }
+    .logout{
+      cursor:pointer;
+    }
+    .logout:hover *{
+      color: @primary-color !important;
+    }
+    .logo{
+      img{
+        background: white;
+      }
+    }
+  }
+  .body{
+    display: flex;
+    height: calc(100vh - 72px);
+    #Content{
+      flex: 1;
+      max-height: 100%;
+    }
+  }
+  #Datas{
+    padding: 20px;
+    border-top: 1px solid #eee;
+    .handle{
+      padding: 20px 0;
+      .btn{
+        margin-right: 20px;
+      }
+    }
+  }
+}
