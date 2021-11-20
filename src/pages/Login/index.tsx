@@ -13,6 +13,7 @@ class Login extends React.Component<any, any>{
         this.props = props;
     }
     componentDidMount() {
+        tool.setCookie("key","");
     }
 
     onLogin = ()=>{
@@ -24,16 +25,20 @@ class Login extends React.Component<any, any>{
             centered:true,
             maskClosable:true
         });
-        console.log(code);
-        tool.setCookie("key","");
-        axios("check?key="+code,{},'GET').then(res=>{
+
+        tool.setCookie("key",code);
+        axios("check",{},'GET').then(res=>{
             if (res === "error"){
                 message.error("登录失败!")
+                tool.setCookie("key","");
             }else if(res === "ok"){
                 message.success("登录成功");
-                tool.setCookie("key",code);
-                this.props.history.push("/");
-                console.log(this.props.history);
+                axios("extend",{},'GET').then(res=>{
+                    console.log(res);
+                    tool.setCookie("city",res);
+                    this.props.history.push("/");
+                })
+
             }
         })
     }

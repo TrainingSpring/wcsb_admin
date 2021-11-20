@@ -33,10 +33,23 @@ class Main extends React.Component<any, any> {
                 path:"/shop"
             }
         ],
-        title: "客户数据"
+        title: "客户数据",
+        loginState:false
     };
+    private time:any;
+
+    private CheckLogin = ()=>{
+        let key = tools.getCookie("key");
+        if (!key) {
+            this.props.history.replace("/login");
+            return false;
+        }
+        return true
+    }
     componentDidMount() {
         let path = this.props.history.location.pathname;
+        this.time = setInterval(this.CheckLogin,1000);
+        this.CheckLogin();
         this.state.menus.forEach((item,index)=>{
             if (item.path === path) this.setState({
                 selectedKeys:[index+""]
@@ -49,15 +62,16 @@ class Main extends React.Component<any, any> {
             collapsed: !this.state.collapsed,
         });
     };
+
     onSelectMenu = (info: any) => {
-        console.log(info);
+
         let {key} = info;
         let item: any = this.state.menus[key];
         this.setState({
             title: item.text,
             selectedKeys:[key]
         })
-        console.log(this.state,"state");
+
         this.props.history.replace(item.path);
 
     };
@@ -77,14 +91,13 @@ class Main extends React.Component<any, any> {
     }
 
     render() {
-        let path = this.props.history.location.pathname;
         return (
             <div id={'Main'}>
                 <div className="topInfo">
                     <PageHeader title={"后台管理系统"} subTitle={this.state.title} className={'pageHeader'} ghost={false} backIcon={false}  extra={this.Header()} />
                 </div>
                 <div className="body">
-                    <div style={{maxWidth: 256, height: '100%'}}>
+                    <div style={{width: 130, height: '100%'}}>
                         {/*<Button type="primary" onClick={this.toggleCollapsed} style={{ marginBottom: 16 }}>*/}
                         {/*    {React.createElement(this.state.collapsed ? MenuUnfoldOutlined : MenuFoldOutlined)}*/}
                         {/*</Button>*/}
@@ -108,7 +121,7 @@ class Main extends React.Component<any, any> {
 
                         </Menu>
                     </div>
-                    <div id="Content">
+                    <div id="Content" style={{width:"calc(100vw - 120px)"}}>
                         {this.props.children}
                     </div>
                 </div>

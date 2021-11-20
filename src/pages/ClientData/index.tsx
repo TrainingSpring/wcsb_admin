@@ -5,6 +5,9 @@ import axios from "../../plugin/ajax"
 import {Link} from "react-router-dom";
 import XLSX from "xlsx";
 import tools from "../../plugin/tools";
+import moment from "moment";
+import {Debugger} from "inspector";
+import {message} from "antd";
 
 interface DataType {
     id:number|string,
@@ -30,32 +33,27 @@ class ClientData extends React.Component<any, any>{
         query:""
     }
     public time:any;
-
     constructor(props:any) {
         super(props);
     }
 
     private CheckLogin = ()=>{
         let key = tools.getCookie("key");
-        console.log(key,"key");
-        if (!key) {
-            this.props.history.replace("/login");
-            return false;
-        }
-        return true
+        return !!key;
     }
     componentDidMount() {
-        this.time = setInterval(this.CheckLogin,1000);
         if (this.CheckLogin())
             this.getColumnsAndData();
     }
     componentDidUpdate(prevProps: Readonly<any>, prevState: Readonly<any>, snapshot?: any) {
         if (prevProps.location.pathname !== this.props.location.pathname){
-            this.setState({
-                page:1,
-                query:""
+            setTimeout(()=>{
+                this.setState({
+                    page:1,
+                    query:""
+                })
+                this.getColumnsAndData()
             })
-            this.getColumnsAndData()
         }
     }
     componentWillUnmount() {
@@ -65,24 +63,163 @@ class ClientData extends React.Component<any, any>{
         let path = this.props.history.location.pathname;
         if (list!= null) {
             let data:any = list.map((item: any, index: number) => {
-                item = JSON.parse(item);
-                item["details"] = "详情";
-                item["key"] = index
-                if (path === "/") item["gps"] = `经度: ${item.station_lon} 纬度: ${item.station_lat} \n 地址: ${item.station_name}`
-                console.log(item);
-                return item;
+                try {
+                    item = JSON.parse(item);
+                    item["details"] = "详情";
+                    item["key"] = index;
+                    if (item.other) {
+                        let other = this.getOtherData(item);
+                        item["_otherDetails"] = other;
+                        /*item["productOFFName"] = other.info.data[0].productOFFName;
+                        item["useCallTime"] = other.info.data[0].useCallTime;
+                        item["useNet"] = other.info.data[0].useNet;
+                        item["consumerCost"] = other.info.data[0].consumerCost;
+                        item["consumerNet"] = other.info.data[0].consumerNet;
+                        item["ratableAmount"] = other.info.data[0].ratableAmount;*/
+                        item["recentlyCost_0"] = other.sixCost.data[0].costNum; // 最近一个月的消费
+                        item["recentlyCost_1"] = other.sixCost.data[1].costNum; // 最近第二个月的消费
+                        item["recentlyCost_2"] = other.sixCost.data[2].costNum; //...
+                        item["recentlyCost_3"] = other.sixCost.data[3].costNum;
+                        item["recentlyCost_4"] = other.sixCost.data[4].costNum;
+                        item["recentlyCost_5"] = other.sixCost.data[5].costNum;
+                        // 近6个月的流量使用
+                        item["recentlyFlow_0"] = other.sixCost.data[0].flowNum; // 最近一个月的流量
+                        item["recentlyFlow_1"] = other.sixCost.data[1].flowNum; // 最近第二个月的流量
+                        item["recentlyFlow_2"] = other.sixCost.data[2].flowNum; //...
+                        item["recentlyFlow_3"] = other.sixCost.data[3].flowNum;
+                        item["recentlyFlow_4"] = other.sixCost.data[4].flowNum;
+                        item["recentlyFlow_5"] = other.sixCost.data[5].flowNum;
+                        // 近6个月的通话分钟
+                        item["recentlyCall_0"] = other.sixCost.data[0].callNum; // 最近一个月的流量
+                        item["recentlyCall_1"] = other.sixCost.data[1].callNum; // 最近第二个月的流量
+                        item["recentlyCall_2"] = other.sixCost.data[2].callNum; //...
+                        item["recentlyCall_3"] = other.sixCost.data[3].callNum;
+                        item["recentlyCall_4"] = other.sixCost.data[4].callNum;
+                        item["recentlyCall_5"] = other.sixCost.data[5].callNum;
+                        let getStr =  (idx:number,k:string)=> other.sixCost.data[idx][k]+":"+(other.sixCost.data[idx][(k+"Num")]||"");
+                        item["sixCost"] = `${getStr(0,"cost")},${getStr(1,"cost")},${getStr(2,"cost")},${getStr(3,"cost")},${getStr(4,"cost")},${getStr(5,"cost")}`;
+                        item["sixFlow"] = `${getStr(0,"flow")},${getStr(1,"flow")},${getStr(2,"flow")},${getStr(3,"flow")},${getStr(4,"flow")},${getStr(5,"flow")}`;
+                        item["sixCall"] = `${getStr(0,"call")},${getStr(1,"call")},${getStr(2,"call")},${getStr(3,"call")},${getStr(4,"call")},${getStr(5,"call")}`;
+                        item["_extraColumnsInfo"] = [
+                            ...other.info.col,
+                           /* {
+                                title:other.sixCost.data[0].cost+"消费(元)" || "",
+                                dataIndex:"recentlyCost_0"
+                            },
+                            {
+                                title:other.sixCost.data[1].cost+"消费(元)" || "",
+                                dataIndex:"recentlyCost_1"
+                            },
+                            {
+                                title:other.sixCost.data[2].cost+"消费(元)" || "",
+                                dataIndex:"recentlyCost_2"
+                            },
+                            {
+                                title:other.sixCost.data[3].cost+"消费(元)" || "",
+                                dataIndex:"recentlyCost_3"
+                            },
+                            {
+                                title:other.sixCost.data[4].cost+"消费(元)" || "",
+                                dataIndex:"recentlyCost_4"
+                            },
+                            {
+                                title:other.sixCost.data[5].cost+"消费(元)" || "",
+                                dataIndex:"recentlyCost_5"
+                            },
+                            {
+                                title:other.sixCost.data[0].flow+"流量(GB)",
+                                dataIndex:"recentlyFlow_0"
+                            },
+                            {
+                                title:other.sixCost.data[1].flow+"流量(GB)",
+                                dataIndex:"recentlyFlow_1"
+                            },
+                            {
+                                title:other.sixCost.data[2].flow+"流量(GB)",
+                                dataIndex:"recentlyFlow_2"
+                            },
+                            {
+                                title:other.sixCost.data[3].flow+"流量(GB)",
+                                dataIndex:"recentlyFlow_3"
+                            },
+                            {
+                                title:other.sixCost.data[4].flow+"流量(GB)",
+                                dataIndex:"recentlyFlow_4"
+                            },
+                            {
+                                title:other.sixCost.data[5].flow+"流量(GB)",
+                                dataIndex:"recentlyFlow_5"
+                            },
+                            {
+                                title:other.sixCost.data[0].call+"通话(分钟)",
+                                dataIndex:"recentlyCall_0"
+                            },
+                            {
+                                title:other.sixCost.data[1].call+"通话(分钟)",
+                                dataIndex:"recentlyCall_1"
+                            },
+                            {
+                                title:other.sixCost.data[2].call+"通话(分钟)",
+                                dataIndex:"recentlyCall_2"
+                            },
+                            {
+                                title:other.sixCost.data[3].call+"通话(分钟)",
+                                dataIndex:"recentlyCall_3"
+                            },
+                            {
+                                title:other.sixCost.data[4].call+"通话(分钟)",
+                                dataIndex:"recentlyCall_4"
+                            },
+                            {
+                                title:other.sixCost.data[5].call+"通话(分钟)",
+                                dataIndex:"recentlyCall_5"
+                            },*/
+                            {title:"近六个月消费(元)",dataIndex:"sixCost"},
+                            {title:"近六个月流量(GB)",dataIndex:"sixFlow"},
+                            {title:"近六个月通话(分钟)",dataIndex:"sixCall"},
+                            {
+                                title:"消费:六个月平均/六个月最大",
+                                dataIndex:"sixCostAllStr"
+                            },
+                            {
+                                title:"语音:六个月平均/六个月最大",
+                                dataIndex:"sixYuyinStr"
+                            },
+                            {
+                                title:"流量:六个月平均/六个月最大",
+                                dataIndex:"sixLiuLiangStr"
+                            },
+                            {
+                                title:"开通业务",
+                                dataIndex:"other"
+                            },
+                        ]
+
+                    }
+                    if (path === "/") item["gps"] = `经度: ${item.station_lon} 纬度: ${item.station_lat} \n 地址: ${item.station_name}`
+
+                    return item;
+                }catch (err){
+
+                }
             })
+
             return data;
         }
         return [];
     }
     getData = (table_name:string) => {
-        console.log(this.state.query);
+
         return axios("query",{
             pageInfo: this.state.page + ",10",
             query_str: this.state.query,
             table_name: table_name
         }).then((res:any)=>{
+            if (res === "key error"){
+                message.warning("登录失效,请重新登录!");
+                this.props.history.replace("/login");
+                return ;
+            }
             let data = this.formatData(res.data);
             this.setState({
                 tableData: data,
@@ -93,6 +230,10 @@ class ClientData extends React.Component<any, any>{
     }
     getColumnsAndData=()=>{
         let path = this.props.history.location.pathname;
+        this.setState({
+            tableData :[],
+            total:0
+        })
         let colStr:any=[];
         let tableName = "";
         switch (path) {
@@ -187,7 +328,7 @@ class ClientData extends React.Component<any, any>{
         })
         // 格式化数据
         this.getData(tableName).then(res=>{
-            console.log(res);
+
         })
     }
     /**
@@ -265,32 +406,64 @@ class ClientData extends React.Component<any, any>{
      * @desc 导出excel
      * @param excelName
      */
-    onExportExcel = (excelName:string)=>{
+    onExportExcel = (excelName:string,selected:any)=>{
         let columns = this.state.columns;
+        let excelTitle:any;
         axios("query_all",{
             table_name:this.state.tableName,
             query_str:this.state.query
         }).then(res=>{
+            if (res === "key error"){
+                message.warning("登录失效,请重新登录!");
+                this.props.history.replace("/login");
+                return ;
+            }
             let data = this.formatData(res.data);
-            let table:any = []
-            table[0] = columns.map(item=>item.title);
+            let table:any = [];
+            let extraColumns:any = data[0]["_extraColumnsInfo"] || [];
+            excelTitle = columns.concat(extraColumns);
+            table[0] = [];
+            for (let i in excelTitle){
+                let item:any = excelTitle[i];
+                if (item.title !== "详情") table[0].push(item.title);
+            }
+            console.log(table[0]);
             data.forEach((item:any)=>{
                 let arr:any = [];
-                columns.forEach((i:any,index:number)=>{
-                    let val = item[i.dataIndex];
-                    if (typeof i.render === "function"){
-                        let render = i.render(val);
-                        if (["p","div","span"].indexOf(render.type)>-1){
-                            val = render.props.children;
-                        }else if(render.type.toLowerCase() === "Link" || render.type === "a"){
-                            val = "the column is link!";
+                if (!!item) {
+                    // excelTitle.forEach((i: any, index: number) => {
+                    //
+                    // })
+                    for (let index = 0,len = excelTitle.length;index<len;index++){
+                        let i = excelTitle[index];
+                        if (i.title === "详情") {
+                            continue;
+                        }
+                        let val: any;
+                        try {
+                            val = item[i.dataIndex];
+                            if (typeof i.render === "function") {
+                                let render = i.render(val);
+                                if (typeof render.type === "string") {
+                                    if (["p", "div", "span"].indexOf(render.type) > -1) {
+                                        val = render.props.children;
+                                    } else if (render.type.toLowerCase() === "link" || render.type === "a") {
+                                        val = "the column is link!";
+                                    }
+                                }else{
+                                    val = render.type.render.displayName.toLowerCase() === "link"?"the column is link!":""
+                                }
+                            }
+                            // 为链接的情况下  不加入列
+                            // if (val !== "the column is link!" && val != null)
+                            arr.push(val);
+                        } catch (e) {
+                            console.error(e);
                         }
                     }
-                    // 为链接的情况下  不加入列
-                    if (val !=="the column is link!")
-                        arr[index] = val;
-                })
-                table.push(arr);
+                    console.log(arr);
+                    table.push(arr);
+                }
             })
             let wb = XLSX.utils.book_new();
             let ws = XLSX.utils.aoa_to_sheet(table);
@@ -300,17 +473,216 @@ class ClientData extends React.Component<any, any>{
     }
     onDeleteData = (data:any=[])=>{
         let ids = data.map((item:any)=>{
-            return item.id
+            return item.id||item.uid
         })
         axios("delete_data",{
             table_name:this.state.tableName,
             id_str:ids.join(",")
         }).then(res=>{
+            if (res === "key error"){
+                message.warning("登录失效,请重新登录!");
+                this.props.history.replace("/login");
+                return ;
+            }
             this.getData(this.state.tableName)
         })
     }
+
+    getOtherData = (datas:any)=>{
+        let data : any = {};
+        let otherInfo:any;
+        try {
+            otherInfo = JSON.parse(datas.other);
+            if (typeof otherInfo !== "object")throw "不是一个有效数据!"
+        }catch (e){
+            otherInfo = [];
+        }
+        // 第一个表的数据
+        let col1:any = [
+            {
+                title:"套餐名称",
+                dataIndex:"productOFFName",
+                align:'center',
+
+            },
+            {
+                title:"使用分钟数",
+                dataIndex:"useCallTime",
+                align:'center',
+
+            },
+            {
+                title:"使用流量",
+                dataIndex:"useNet",
+                align:'center',
+
+            },
+            {
+                title:"套餐费用",
+                dataIndex:"consumerCost",
+                align:'center',
+
+            },
+            {
+                title:"套餐分钟数",
+                dataIndex:"consumerCallTime",
+                align:'center',
+
+            },
+            {
+                title:"套餐内流量",
+                dataIndex:"consumerNet",
+                align:'center',
+
+            },
+            {
+                title:"当前套餐流量",
+                dataIndex:"ratableAmount",
+                align:'center',
+
+            },
+        ]
+        let d1:any = {key:0};
+        for (let i in col1){
+            let item = col1[i];
+            let k = item.dataIndex;
+            d1[k] = datas[k];
+        }
+        let data1 = [d1];
+        data.info = {
+            col:col1,
+            data:data1
+        };
+        // 第二个表的数据
+        let col2:any = [
+            {
+                title:"资费（元）",
+                dataIndex:"cost",
+                align:'center',
+                colSpan:2,
+            },
+            {
+                title:"资费",
+                dataIndex:"costNum",
+                align:'center',
+                colSpan:0,
+            },
+            {
+                title:"流量（GB）",
+                dataIndex:"flow",
+                align:'center',
+                colSpan:2,
+
+            },
+            {
+                title:"流量",
+                dataIndex:"flowNum",
+                align:'center',
+                colSpan:0,
+
+            },
+            {
+                title:"通话分钟数（min）",
+                dataIndex:"call",
+                align:'center',
+                colSpan:2,
+            },
+            {
+                title:"通话分钟数",
+                dataIndex:"callNum",
+                align:'center',
+                colSpan:0,
+            }
+        ]
+        let {sixNetStr,costAll,sixUseCallTime,queryTime,sixCostAllStr ,sixYuyinStr ,sixLiuLiangStr } = datas;
+        let flow = sixNetStr.split(",");
+        let call = sixUseCallTime.split(",");
+        let cost = costAll.split(",");
+        queryTime = moment(new Date(queryTime));
+        let data2 = [];
+        for (let i = 0 ;i < 6 ; i ++) {
+            let m = queryTime.subtract(1, 'months').month() + 1
+            data2.push({
+                key:i,
+                flow:m+"月",
+                flowNum:flow[i],
+                call:m+"月",
+                callNum:call[i],
+                cost:m+"月",
+                costNum:cost[i],
+            })
+        }
+        data.sixCost={
+            col:col2,
+            data:data2
+        }
+        // 第三张表的数据
+        let col3:any = Object.assign([],col2);
+        sixCostAllStr = sixCostAllStr.split("/");
+        sixYuyinStr = sixYuyinStr.split("/");
+        sixLiuLiangStr = sixLiuLiangStr.split("/");
+        let data3 = [
+            {
+                key:0,
+                cost:"平均值",
+                costNum:"最大值",
+                flow:"平均值",
+                flowNum:"最大值",
+                call:"平均值",
+                callNum:"最大值",
+            },
+            {
+                key:1,
+                cost:sixCostAllStr[0],
+                costNum:sixCostAllStr[1],
+                flow:sixYuyinStr[0],
+                flowNum:sixYuyinStr[1],
+                call:sixLiuLiangStr[0],
+                callNum:sixLiuLiangStr[1]
+            }
+        ];
+        data.sixAverageCost = {
+            col:col3,
+            data:data3
+        }
+        // 第四张表
+        let col4:any = [
+            {
+                title:"业务名称",
+                dataIndex:"name",
+                align:'center',
+            },
+            {
+                title:"费用",
+                dataIndex:"money",
+                align:'center',
+            },
+            {
+                title:"开通时间",
+                dataIndex:"startTime",
+                align:'center',
+            },
+            {
+                title:"结束时间",
+                dataIndex:"deadTime",
+                align:'center',
+            },
+        ]
+        let data4 = otherInfo.map((item:any,index:number)=>{
+            let obj:any = {key:index};
+            col4.forEach((col:any)=>{
+                let key = col.dataIndex;
+                obj[key] = item[key];
+            })
+            return obj;
+        })
+        data.business = {
+            col:col4,
+            data:data4
+        }
+        return data;
+    }
     render() {
-        console.log(this.CheckLogin());
         if(!this.CheckLogin())return false;
         let path = this.props.history.location.pathname;
         let excelName = path==="/"?"客户数据":path==="/experience"?"客户体验" : path==="/shop"?"临街商铺":"none"
@@ -323,8 +695,9 @@ class ClientData extends React.Component<any, any>{
                     data={this.state.tableData}
                     total={this.state.total}
                     onPageChange={this.onPageChange}
-                    onExportExcel={()=>{this.onExportExcel(excelName)}}
+                    onExportExcel={(selected:any)=>{this.onExportExcel(excelName,selected)}}
                     onDeleteData={this.onDeleteData}
+                    currentPage={this.state.page}
                 />
             </div>
         );

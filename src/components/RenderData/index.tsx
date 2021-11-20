@@ -12,6 +12,8 @@ interface IProps{
     onPageChange?:any
     onExportExcel?:any
     onDeleteData?:any
+    location?:any
+    currentPage?:number
 }
 class RenderData extends React.Component<any,any>{
     public props:IProps;
@@ -35,14 +37,23 @@ class RenderData extends React.Component<any,any>{
 
     }
 
+    public componentDidUpdate(prevProps: Readonly<any>, prevState: Readonly<any>, snapshot?: any) {
+        if (prevProps.location.pathname !== this.props.location.pathname){
+            this.setState({
+                selectedKey:[],
+                selected:[],
+            })
+        }
+    }
     /**
      * 表头部的操作栏
      * @param type 0: 导出excel 1 数据提交 2 删除
      */
     public onHandle(type:number){
+        let cur = this.state.selected;
         switch (type){
             case 0:
-                this.props.onExportExcel()
+                this.props.onExportExcel(cur)
                 break;
 
             case 1:
@@ -50,7 +61,6 @@ class RenderData extends React.Component<any,any>{
                 break;
 
             case 2:
-                let cur = this.state.selected;
                 if (cur.length === 0)
                     Modal.warning({
                         title:"提示",
@@ -68,7 +78,7 @@ class RenderData extends React.Component<any,any>{
                         maskClosable:true,
                         onOk:(close)=>{
                             let {onDeleteData} = this.props;
-                            if (typeof onDeleteData === "function")onDeleteData(this.state.selected);
+                            if (typeof onDeleteData === "function")onDeleteData(cur);
                             this.setState({
                                 selected:[],
                                 selectedKey:[]
@@ -90,27 +100,34 @@ class RenderData extends React.Component<any,any>{
     }
     render(){
         let {data,columns} = this.props;
+        let path = this.props.path;
         return(<div id={"Datas"}>
             <div className="handle">
                 <Button className={"btn"} type={"primary"} onClick={()=>this.onHandle(0)}>导出Excel</Button>
-                {(this.props.path === "/")?<Button className={"btn"} onClick={()=>this.onHandle(1)}>数据提交</Button>:""}
+                {(path === "/")?<Button className={"btn"} onClick={()=>this.onHandle(1)}>数据提交</Button>:""}
                 <Button className={"btn"} danger={true} onClick={()=>this.onHandle(2)}>删除</Button>
             </div>
-            <div style={{maxHeight:"calc(100vh - 152px - 94px)",overflowY:"auto"}}>
-                <Table
-                    rowSelection={{
-                        type: "checkbox",
-                        ...this.rowSelection,
-                        selectedRowKeys:this.state.selectedKey
-                    }}
-                    columns={columns||[]}
-                    dataSource={data}
-                    pagination={{
-                        total:this.props.total,
-                        onChange:this.onPageChange,
-                        showSizeChanger:false
-                    }}
-                />
+            <div style={{maxHeight:"calc(100vh - 152px - 94px)", overflow:"auto"}}>
+                <div style={{minWidth:path==='/experience'?'3210px':path==='/shop'?'2280px':'100%'}}>
+                    <Table
+                        rowSelection={{
+                            type: "checkbox",
+                            ...this.rowSelection,
+                            selectedRowKeys:this.state.selectedKey
+                        }}
+                        size={"large"}
+                        columns={columns||[]}
+                        dataSource={data}
+                        pagination={{
+                            total:this.props.total,
+                            onChange:this.onPageChange,
+                            showSizeChanger:false,
+                            position:["bottomLeft"],
+                            current:this.props.currentPage
+                        }}
+                    />
+                </div>
+
 
             </div>
 

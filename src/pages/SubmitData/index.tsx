@@ -9,16 +9,17 @@ class SubmitData extends React.Component<any,any>{
     }
     // 提交
     onFinish = (values: any) => {
-        this.setState({
+
+        /*this.setState({
             submit:true
-        })
+        })*/
     };
 
     onFinishFailed = (errorInfo: any) => {
-        console.log('Failed:', errorInfo);
+
     };
     render(){
-        console.log(this.props.history);
+
         return(
             <div id={"Submit"}>
                 <div className="form" style={{display:this.state.submit?"none":"flex"}} >

@@ -5,6 +5,7 @@ import moment from "moment"
 import tools from "../../plugin/tools"
 import axios from "../../plugin/ajax";
 import {withRouter} from "react-router-dom";
+import locale from "antd/lib/date-picker/locale/zh_CN";
 const {Option} = Select;
 const { RangePicker } = DatePicker;
 interface IState{
@@ -14,6 +15,7 @@ interface IState{
     cityServer:[]|any
     selectedCity?:any
     selectedServer?:any
+    reserveDate?:any
 }
 interface IProps{
     onSearch?:any
@@ -41,25 +43,38 @@ class Filter extends React.Component{
                 rangeDate:null,
                 selectedCity:[],
                 selectedServer:"全部",
+                reserveDate:null
             })
             this.areaChange([]);
         }
     }
     componentDidMount() {
         let cityInfo:any = {};
+        let currentCity = tools.getCookie("city");
         axios("https://cmccbill.700t.com/api/offline/getcountrys").then(res=>{
             res.forEach((item:any)=>{
                 let cityName:any = item.cityName;
                 let countyName:any = item.countyName;
                 let dataCentre:any = item.dataCentre;
                 let work:any = item.work;
-                if (cityInfo[cityName] == null)
-                    cityInfo[cityName] = {}
-                if (cityInfo[cityName][countyName] == null)
-                    cityInfo[cityName][countyName] = {}
-                if(cityInfo[cityName][countyName][dataCentre] == null)
-                    cityInfo[cityName][countyName][dataCentre] = {}
-                cityInfo[cityName][countyName][dataCentre][work] = true;
+                let setCity = function () {
+
+                    if (cityInfo[cityName] == null)
+                        cityInfo[cityName] = {
+                            "全部": ""
+                        }
+                    if (cityInfo[cityName][countyName] == null)
+                        cityInfo[cityName][countyName] = {}
+                    if (cityInfo[cityName][countyName][dataCentre] == null)
+                        cityInfo[cityName][countyName][dataCentre] = {}
+                    cityInfo[cityName][countyName][dataCentre][work] = true;
+                }
+
+                if(cityName === currentCity){
+                    setCity();
+                }else if(currentCity === "全部"){
+                    setCity();
+                }
             })
             let cityOption = [];
             for (let c in cityInfo){
@@ -119,6 +134,9 @@ class Filter extends React.Component{
      */
     onDateReserveChange=(e:any)=>{
         let date = new Date();
+        this.setState({
+            reserveDate:e
+        })
         switch (e){
             case 1:
                 date.setTime(date.getTime() - 24*60*60*1000*3);
@@ -138,6 +156,8 @@ class Filter extends React.Component{
         })
     }
     onSearch=()=>{
+        let city = this.state.selectedCity;
+        if (city[1] === "全部")city[1] = "";
         this.props.onSearch(this.state.selectedCity,this.state.selectedServer,this.state.rangeDate)
     }
     onDateChange= (e:any)=>{
@@ -148,7 +168,7 @@ class Filter extends React.Component{
     render(){
         return(
             <div id={"Filter"}>
-                <div><span className={'key'}>地区: </span><Cascader options={this.state.cityOption} value={this.state.selectedCity} onChange={this.areaChange}></Cascader></div>
+                <div><span className={'key'}>地区: </span><Cascader options={this.state.cityOption} value={this.state.selectedCity} placeholder={"请选择地区"} onChange={this.areaChange}></Cascader></div>
                 <div><span className={'key'}>服务中心: </span>
                     <div>
                         <Select style={{width:"150px"}} defaultValue={"全部"} value={this.state.selectedServer} onChange={this.onServeChange}>
@@ -163,7 +183,7 @@ class Filter extends React.Component{
                 </div>
                 <div>
                     <div>
-                        <Select style={{width:"150px"}} onChange={this.onDateReserveChange}>
+                        <Select style={{width:"150px"}} value={this.state.reserveDate} placeholder={"预置时间"} onChange={this.onDateReserveChange}>
                             <Option value={0}>今天</Option>
                             <Option value={1}>最近三天</Option>
                             <Option value={2}>本周</Option>
@@ -175,6 +195,7 @@ class Filter extends React.Component{
                 <div>
                     <span className={'key'}>从 </span>
                     <RangePicker
+                         locale={locale}
                         format="YYYY-MM-DD"
                         value={this.state.rangeDate}
                         onChange={this.onDateChange}
